@@ -1,7 +1,10 @@
-"""
-Module for drawing rotating cube using OpenGL as per
-quaternion or yaw, pitch, roll angles.
-"""
+
+# Te code is used to generate a GUI which displays the orientation of the cube based on the
+# current position of the box in the scene. The code uses the libraries of OpenGl and pygame.
+# THe code displays the rotation angles in the format of roll, pitch, yaw which is used to
+# determine the orientation of the box
+
+
 import rospy
 from geometry_msgs.msg import Pose
 import pygame
@@ -10,9 +13,8 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from pygame.locals import *
 
-useSerial = False # set true for using serial for data transmission, false for wifi
-useQuat = True   # set true for using quaternions, false for using y,p,r angles
 
+useQuat = True   # set true for using quaternions, false for using y,p,r angles
 
 def main():
     video_flags = OPENGL | DOUBLEBUF
@@ -51,21 +53,10 @@ def main():
         except:
             pass
 
-        # if(useQuat):
-            #[w, nx, ny, nz] = [1,0,0,0] #read_data()
-        # else:
-        #     [yaw, pitch, roll] = read_data()
-        # if(useQuat):
-        #     draw(w, nx, ny, nz)
-        # else:
-        #     draw(1, yaw, pitch, roll)
-
-    print("fps: %d" % ((frames*1000)/(pygame.time.get_ticks()-ticks)))
-
 
 def resizewin(width, height):
     """
-    For resizing window
+    For resizing window based on input width and height
     """
     if height == 0:
         height = 1
@@ -85,12 +76,20 @@ def init():
     glDepthFunc(GL_LEQUAL)
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST)
 
+
 def draw(w, nx, ny, nz):
+    """[summary]
+
+    Args:
+        w (float): the real part of quaternion 
+        nx (float): imaginary x of quaternion
+        ny (float): imaginary y of quaternion
+        nz (float): imaginary z of quaternion
+    """
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glTranslatef(0, 0.0, -7.0)
 
-    # drawText((-2.6, 1.8, 2), "PyTeapot", 18)
     drawText((-2.6, 1.6, 2), "Module to visualize cuboid", 16)
     drawText((-2.6, -2, 2), "Press Escape to exit.", 16)
 
@@ -107,6 +106,8 @@ def draw(w, nx, ny, nz):
         glRotatef(pitch, 1.00, 0.00, 0.00)
         glRotatef(yaw, 0.00, 1.00, 0.00)
 
+
+    ##### To generate the box using vertices and color combinations
     glBegin(GL_QUADS)
     glColor3f(0.0, 1.0, 0.0)
     glVertex3f(1.0, 0.2, -1.0)
@@ -147,6 +148,14 @@ def draw(w, nx, ny, nz):
 
 
 def drawText(position, textString, size):
+    """
+    Function for defining a text on the output window
+
+    Args:
+        position ([int]): Position of the text on the window
+        textString ([string]): text to be added
+        size ([int]): size of the text
+    """
     font = pygame.font.SysFont("Courier", size, True)
     textSurface = font.render(textString, True, (255, 255, 255, 255), (0, 0, 0, 255))
     textData = pygame.image.tostring(textSurface, "RGBA", True)
@@ -154,17 +163,33 @@ def drawText(position, textString, size):
     glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
 def quat_to_ypr(q):
+    """
+    Function to convert quaternion form of orientation to yaw pitch roll
+
+    Args:
+        q (quaternion): quaternion elements w,x,y,z
+
+    Returns:
+        [list]: yaw, roll, pitch angles in a list
+    """
     yaw   = math.atan2(2.0 * (q[1] * q[2] + q[0] * q[3]), q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3])
     pitch = -math.sin(2.0 * (q[1] * q[3] - q[0] * q[2]))
     roll  = math.atan2(2.0 * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3])
     pitch *= 180.0 / math.pi
     yaw   *= 180.0 / math.pi
-    yaw   -= -0.13  # Declination at Chandrapur, Maharashtra is - 0 degress 13 min
+    yaw   -= -0.13  
     roll  *= 180.0 / math.pi
     return [yaw, pitch, roll]
 
 
 def callback(data):
+    """
+    Function for providing a callback for subscriber
+
+    Args:
+        data ([PoseStamp]): position and orientation variable
+    """
+
     global ori_x, ori_y, ori_z, ori_w
     ori_x = data.orientation.x
     ori_y =  data.orientation.y
@@ -172,6 +197,8 @@ def callback(data):
     ori_w = data.orientation.w
     
     return 
+
+
 if __name__ == '__main__':
 
     main()
