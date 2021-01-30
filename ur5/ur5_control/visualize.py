@@ -1,7 +1,7 @@
 
 # Te code is used to generate a GUI which displays the orientation of the cube based on the
 # current position of the box in the scene. The code uses the libraries of OpenGl and pygame.
-# THe code displays the rotation angles in the format of roll, pitch, yaw which is used to
+# The code displays the rotation angles in the format of roll, pitch, yaw which is used to
 # determine the orientation of the box
 
 
@@ -78,7 +78,8 @@ def init():
 
 
 def draw(w, nx, ny, nz):
-    """[summary]
+    """
+    Function to draw a cube based on the input arguments
 
     Args:
         w (float): the real part of quaternion 

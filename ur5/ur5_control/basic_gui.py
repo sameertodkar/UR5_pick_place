@@ -2,6 +2,13 @@
 # The code is used to generate the Graphical User Interface for interacting with the robot. The code
 # makes use of Tkinter library to access functionaity of sliders, Entry, and buttons.
 
+# Simplest way to create a GUI
+# Step1: Create a canvas
+# Step2: Create a frame on the canvas and place with relative values with the canvas
+# Step3: Add buttons, textboxes, sliders etc in the frames and then provide relative values wrt to frames
+
+# Aligning widgets, buttons with relative values eases the task of making GUI
+
 # Author: Sameer Todkar
 # Date: 30 Jan 2021
 
@@ -34,13 +41,13 @@ class Custom_slider:
 
         """
 
-        self.city_frame = tk.Frame(root, bg='gray5', bd=0.5,
+        self.slider_frame = tk.Frame(root, bg='gray5', bd=0.5,
                                    highlightcolor='black', highlightthickness=0, borderwidth=0)
 
-        self.city_frame.place(relx=0.225, rely=distance_top,
+        self.slider_frame.place(relx=0.225, rely=distance_top,
                               relwidth=width, relheight=height, anchor='n')
 
-        self.w = Scale(self.city_frame, from_=lower_limit, to=upper_limit, font=('Comic Sans Ms', 11),
+        self.w = Scale(self.slider_frame, from_=lower_limit, to=upper_limit, font=('Comic Sans Ms', 11),
                        orient=HORIZONTAL, highlightthickness=0, borderwidth=0, resolution=0.02,
                        troughcolor="gray2", bg='gray5', cursor='dot', fg='deep sky blue', command=self.get_value)
 

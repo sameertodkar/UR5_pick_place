@@ -1,3 +1,9 @@
+# The code is used to create a motion planning sequence using moveit motionplanning API. The code primarily focuses
+# on using the moveit_commander to plan a path to reach a target in space. The code describes three methods to reach
+# certain target point. The three methods are by changing the joint angles, cartesian path planning, pose goal path
+# planning.
+# The code uses threading to run path planning and to publish the points of the box simultaneosuly.
+
 import sys
 import copy
 import rospy
@@ -12,10 +18,11 @@ import threading
 
 
 # A publisher defined globally, will keep on publishing whenever the message is published
-pub = rospy.Publisher('box_pose', geometry_msgs.msg.Pose, queue_size=10, latch=True)
+pub = rospy.Publisher('box_pose', geometry_msgs.msg.Pose,
+                      queue_size=10, latch=True)            # latched will make sure the subscriber gets the last msg
 
 # A flag to determine if the box is attached or not, which decides if the message should be published
-attached_box = False
+attached_box = Falses
 
 
 def all_close(goal, actual, tolerance):
@@ -44,10 +51,12 @@ def all_close(goal, actual, tolerance):
 class Pick_and_place(object):
     def __init__(self, group):
         """
-        Used to initialize multiple variables and initialize the node.
+        Used to initialize multiple variables and initialize the node and publish on the topic.
 
         Args:
-            group ([type]): [description]
+            group ([string]): Robot group used for planning 
+            groups: group1 = robotic arm kinematic chain
+                    gripper = gripper joints
         """
         super(Pick_and_place, self).__init__()
 
@@ -79,18 +88,15 @@ class Pick_and_place(object):
         self.group_names = group_names
         self.attachements = attachements
 
-    # def set_home_position(self, list):
     def set_home_position(self, list):
         """
-        Sets home position of the robot arm
+        Sets the joint angles of each joint of the robotic arm
 
-        Returns:
-            joint goal positions
-            end effector position and orientation
+        Args:
+            list: List containg joint angles of the robotic arm
         """
         move_group = self.move_group
         joint_goal = move_group.get_current_joint_values()
-        # list = [0, 0, 0, 0, 0, 0]
         for i in range(len(list)):
             joint_goal[i] = list[i]
         move_group.go(joint_goal, wait=True)
@@ -99,6 +105,11 @@ class Pick_and_place(object):
         return all_close(joint_goal, current_joints, 0.01)
 
     def close_gripper(self):
+        """
+        Method for closing the gripper. The method defines a certain joint angles that can be used for closing gripper
+        (can be omitted)
+
+        """
         move_group = self.move_group
         list1 = [0.3, 0.3, 0.3, 0.3, 0.3, 0.3]
         joint_goal = move_group.get_current_joint_values()
@@ -111,6 +122,11 @@ class Pick_and_place(object):
         return all_close(joint_goal, current_joints, 0.01)
 
     def open_gripper(self):
+        """
+        Method for opening the gripper. The method defines a certain joint angles that can be used for closing gripper
+        (can be omitted)
+
+        """
         move_group = self.move_group
         list2 = [0, 0, 0, 0, 0, 0]
         joint_goal = move_group.get_current_joint_values()
@@ -122,11 +138,17 @@ class Pick_and_place(object):
         current_joints = move_group.get_current_joint_values()
         return all_close(joint_goal, current_joints, 0.01)
 
-    # def add_box(self, list, timeout=4):
+    
     def add_box(self, box_pose_list, timeout=4):
+        
         """
-        Adds box in the scene and places it at certain distance based on input
-        """
+        Method to add/insert a box in the scene of RViz. 
+
+        Args:
+            box_pose_list [list] = list containing x, y, z values to place the box in cartesian path
+
+        """ 
+
         box_name = self.box_name
         scene = self.scene
         box_pose = geometry_msgs.msg.PoseStamped()
@@ -139,11 +161,16 @@ class Pick_and_place(object):
         # print("The position of box is {0}".format(box_pose.pose))
         box_name = "box"
         scene.add_box(box_name, box_pose, size=(0.05, 0.05, 0.05))
-        
+
 
     def go_near_pose_goal(self, box_pose_list):
+        
         """
-        This method is used to take the end effector near pose goal which is closer to the box
+        Method for motion planning of robot arm to move to a position which is CLOSER to the box.
+        Path planning method: Pose goal method, optimum path given by the planner 
+
+        Args:
+            box_pose_list [list] = list containing x, y, z values to place the box in cartesian path
 
         """
         move_group = self.move_group
@@ -167,7 +194,8 @@ class Pick_and_place(object):
 
     def wait_for_state_update(self, box_is_known=False, box_is_attached=False, timeout=4):
         """
-        Updates the state of attached object in the scene
+        Method to change the status of the objects present in the scene. The following method
+        updates the status when the object is attached or detached
         """
 
         box_name = self.box_name
@@ -187,7 +215,10 @@ class Pick_and_place(object):
 
     def move_closer(self, box_pose_list, scale=1):
         """
-        This method is used to get closer to the object by cartesian path planning
+        Method to reach at the location of the box. The method uses cartesian path planning
+        to move at the exact location.
+
+        Returns plan that can be executed when the planner provides it
         """
         move_group = self.move_group
         waypoints = []
@@ -203,7 +234,10 @@ class Pick_and_place(object):
 
     def display_trajectory(self, plan):
         """
-        This method is used to display the cartesian path planning
+        Method to display the planned trajectory by the planner
+
+        Args:
+            plan: return value of cartesian path planning(move_closer)
         """
 
         robot = self.robot
@@ -215,10 +249,23 @@ class Pick_and_place(object):
         display_trajectory_publisher.publish(display_trajectory)
 
     def execute_plan(self, plan):
+        """
+        Method to execute the planned trajectory using cartesian path planning
+
+        Args:
+            plan: return of cartesian path planning(move_closer)
+        """
+
         move_group = self.move_group
         move_group.execute(plan, wait=True)
 
     def attach_box(self, timeout=5):
+        """
+        Method to attach the box to the end effector the robotic arm
+        The end effector link must be specified so that the planner ignores the
+        contact between the end effector and the object present in the scene.
+
+        """
         box_name = self.box_name
         robot = self.robot
         scene = self.scene
@@ -229,9 +276,10 @@ class Pick_and_place(object):
         grasping_group = 'gripper'
         touch_links = robot.get_link_names(group=grasping_group)
         scene.attach_box("tool_tip", box_name, touch_links=touch_links)
-        global attached_box
+        global attached_box     # Flag to decide whether the box is attached or not
         attached_box = True
 
+        #### Starting position of the box
         p_x = move_group.get_current_pose("tool_tip").pose.position.x
         p_y = move_group.get_current_pose("tool_tip").pose.position.y
         p_z = move_group.get_current_pose("tool_tip").pose.position.z
@@ -241,18 +289,26 @@ class Pick_and_place(object):
         o_y = move_group.get_current_pose("tool_tip").pose.orientation.y
         o_z = move_group.get_current_pose("tool_tip").pose.orientation.z
 
-        print("----------------------------------------"+ '\n'*4)
-        
+        print("----------------------------------------" + '\n'*4)
+
         print("Starting Position:  x= {0},y= {1}, z= {2} \n".format(
-            p_x+0.02, p_y, p_z))
+            p_x + 0.02, p_y, p_z))  # +0.02 to add the minor offset if present in the end effector frame and box
+            # end effector frame is placed at the tip of the finger tip to match the box pose.
         print("Starting Orientation: x= {0},y= {1}, z= {2}, w= {3}".format(
             o_x, o_y, o_z, o_w))
-        
+
         print("----------------------------------------")
 
         return self.wait_for_state_update(box_is_attached=True, box_is_known=False, timeout=timeout)
 
     def box_pose_publisher(self):
+
+        """
+        Method to publish the box position and orientation at 2Hz after it is attached to the end effector.
+        Method_call along with go_drop_off method
+
+        """
+
         print(pub.get_num_connections())
         rate = rospy.Rate(2)
         while attached_box:
@@ -265,6 +321,13 @@ class Pick_and_place(object):
             rate.sleep()
 
     def go_drop_off(self, goal_pose_list):
+
+        """
+        Plans the path based on the goal position mentioned in x, y,z cartesian space
+
+        Args:
+            goal_pose_list[list]:x, y, z cartesian points of the box drop off location 
+        """
 
         move_group = self.move_group
         pose_goal = geometry_msgs.msg.Pose()
@@ -287,15 +350,25 @@ class Pick_and_place(object):
 
     def detach_box(self, timeout=4):
 
+        """
+        Method for detaching the object once it reaches the drop off location
+
+        Returns:
+            bool: updates the status whether the box is attached or not
+        """
+
+
         move_group = self.move_group
         box_name = self.box_name
         scene = self.scene
         eef_link = self.eef_link
 
         scene.remove_attached_object(eef_link, name=box_name)
-        global attached_box
+        global attached_box   # Flag to decide whether the box is attached or not
         attached_box = False
 
+
+        #### Starting position of the box
         p_x = move_group.get_current_pose("tool_tip").pose.position.x
         p_y = move_group.get_current_pose("tool_tip").pose.position.y
         p_z = move_group.get_current_pose("tool_tip").pose.position.z
@@ -311,7 +384,7 @@ class Pick_and_place(object):
         print("Ending Position:  x= {0},y= {1}, z= {2} \n".format(
             p_x, p_y, p_z))
         print("Ending Orientation: x= {0},y= {1}, z= {2}, w= {3}".format(
-            o_x, o_y, o_z, o_w))    
+            o_x, o_y, o_z, o_w))
 
         print('\n'+"----------------------------------------"+"\n")
 
@@ -324,25 +397,48 @@ class Pick_and_place(object):
         scene.remove_world_object(box_name)
         return self.wait_for_state_update(box_is_attached=False, box_is_known=False, timeout=timeout)
 
-# def execute_pick_place(list_joint, box_pose_list):
+
+
 
 
 def execute_pick_place(joint_goal_list, box_pose_list, goal_pose_list):
+    """
+    Executes the entire sequence of box pick and place
+
+    Args:
+        joint_goal_list ([list]): list of joint angles to set initial joint goal configuration of robot
+        box_pose_list ([list]): list of x,y,z cartesian point for starting position of box
+        goal_pose_list ([list]): list of x,y,z cartesian point for goal position of box
+    """
+
     robot_arm_motion = Pick_and_place("group1")
     robot_gripper = Pick_and_place("gripper")
 
+    ## Initial robot configuration
     robot_arm_motion.set_home_position(joint_goal_list)
+
+    ## Box spawn location
     robot_arm_motion.add_box(box_pose_list)
 
+    ## Robot path planning close to box
     robot_arm_motion.go_near_pose_goal(box_pose_list)
 
+    ## Robot path planning at box location
     cartesian_plan, fraction = robot_arm_motion.move_closer(box_pose_list)
     robot_arm_motion.display_trajectory(cartesian_plan)
     robot_arm_motion.execute_plan(cartesian_plan)
 
+    ## Gripper plan to close and attach the box
     robot_gripper.close_gripper()
     robot_arm_motion.attach_box()
+    
+    ## Start time
     begin_time = rospy.Time.now()
+
+    ########################## Threading ##############################
+    #               t1: Robot path planning to drop off location
+    #               t2: Box pose publishing at 2Hz
+
 
     t1 = threading.Thread(
         target=robot_arm_motion.go_drop_off, args=[goal_pose_list])
@@ -351,15 +447,20 @@ def execute_pick_place(joint_goal_list, box_pose_list, goal_pose_list):
     t1.start()
     t2.start()
     t1.join()
+    ###################################################################
 
+    ## Gripper plan to close and detach the box
     robot_gripper.open_gripper()
     robot_arm_motion.detach_box()
+    
+    ## End time    
     end_time = rospy.Time.now()
     duration = end_time.secs - begin_time.secs
     print("----------------------------------------"+"\n")
     print("Execution time is {} secs".format(duration))
     print('\n'+"----------------------------------------"+"\n")
 
+    ## Remove the box from the scene
     robot_arm_motion.remove_box()
     robot_arm_motion.set_home_position(joint_goal_list)
 
@@ -367,4 +468,4 @@ def execute_pick_place(joint_goal_list, box_pose_list, goal_pose_list):
 
 
 if __name__ == '__main__':
-    Pick_and_place.execute_pick_place()
+    execute_pick_place()
