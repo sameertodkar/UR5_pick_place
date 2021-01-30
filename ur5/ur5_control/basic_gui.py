@@ -9,8 +9,7 @@
 
 # Aligning widgets, buttons with relative values eases the task of making GUI
 
-# Author: Sameer Todkar
-# Date: 30 Jan 2021
+##########################################################################################################
 
 import tkinter as tk
 from tkinter import *

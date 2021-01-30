@@ -4,6 +4,8 @@
 # planning.
 # The code uses threading to run path planning and to publish the points of the box simultaneosuly.
 
+####################################################################################################################
+
 import sys
 import copy
 import rospy
